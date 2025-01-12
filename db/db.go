@@ -52,4 +52,12 @@ func applySchema() error {
 	return nil
 }
 
-
+// Close closes the database connection
+func Close() {
+	if DB != nil {
+		err := DB.Close()
+		if err != nil {
+			log.Fatalf("Error closing database: %v", err)
+		}
+	}
+}
