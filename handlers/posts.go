@@ -92,3 +92,70 @@ func CreatePostHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+// GetPostsHandler handles fetching posts from the database
+func GetPostsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Incoming request to fetch posts")
+
+		// Ensure the request method is GET
+		if r.Method != http.MethodGet {
+			log.Println("Invalid method:", r.Method)
+			http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Query to fetch posts with author name
+		query := `
+			SELECT 
+				posts.id, 
+				posts.title, 
+				posts.content, 
+				users.name AS author, 
+				posts.created_at
+			FROM 
+				posts
+			JOIN 
+				users 
+			ON 
+				posts.user_id = users.id
+			ORDER BY 
+				posts.created_at DESC
+		`
+
+		// Execute the query
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Println("Error executing query:", err)
+			http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		// Prepare the response
+		var posts []Post
+		for rows.Next() {
+			var post Post
+			err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.Author, &post.CreatedAt)
+			if err != nil {
+				log.Println("Error scanning row:", err)
+				http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+				return
+			}
+			posts = append(posts, post)
+		}
+
+		// Check for errors after row iteration
+		if err = rows.Err(); err != nil {
+			log.Println("Row iteration error:", err)
+			http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+			return
+		}
+
+		// Respond with the posts in JSON format
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(posts); err != nil {
+			log.Println("Failed to encode response:", err)
+			http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+		}
+	}
+}
