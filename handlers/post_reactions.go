@@ -73,4 +73,50 @@ func AddReactionHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+func GetPostReactionCountsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Ensure the method is GET
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 
+		// Extract post_id from query parameters
+		postIDStr := r.URL.Query().Get("post_id")
+		if postIDStr == "" {
+			http.Error(w, "Missing post_id parameter", http.StatusBadRequest)
+			return
+		}
+
+		// Convert post_id to an integer
+		postID, err := strconv.Atoi(postIDStr)
+		if err != nil {
+			http.Error(w, "Invalid post_id value", http.StatusBadRequest)
+			return
+		}
+
+		// Query to get likes and dislikes count
+		query := `
+            SELECT 
+                SUM(CASE WHEN reaction_type = 'LIKE' THEN 1 ELSE 0 END) AS likes,
+                SUM(CASE WHEN reaction_type = 'DISLIKE' THEN 1 ELSE 0 END) AS dislikes
+            FROM post_reactions
+            WHERE post_id = ?`
+
+		var likes, dislikes int
+		err = db.QueryRow(query, postID).Scan(&likes, &dislikes)
+		if err != nil {
+			log.Printf("Failed to fetch reactions: %v\n", err)
+			http.Error(w, "Failed to fetch reactions", http.StatusInternalServerError)
+			return
+		}
+
+		// Send response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]int{
+			"post_id":  postID,
+			"likes":    likes,
+			"dislikes": dislikes,
+		})
+	}
+}
