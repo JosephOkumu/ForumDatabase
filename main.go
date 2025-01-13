@@ -17,12 +17,13 @@ func main() {
 	}
 	defer db.Close() // Ensure database connection is closed
 
-	
 	// Define routes
-	http.HandleFunc("/register", handlers.RegisterUserHandler) 
-    http.HandleFunc("/login", handlers.LoginHandler(db.DB))
+	http.HandleFunc("/register", handlers.RegisterUserHandler)
+	http.HandleFunc("/login", handlers.LoginHandler(db.DB))
 	http.HandleFunc("/posts", handlers.GetPostsHandler(db.DB))
 	http.HandleFunc("/create-post", handlers.CreatePostHandler(db.DB))
+	http.HandleFunc("/comment", handlers.AddCommentHandler(db.DB))
+	http.HandleFunc("/get-comments", handlers.GetCommentsHandler(db.DB))
 
 	// Start the server
 	fmt.Println("Server started on :8080")
