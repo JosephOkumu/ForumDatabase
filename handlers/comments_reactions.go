@@ -59,4 +59,49 @@ func AddCommentReactionHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+func GetCommentReactionCountsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 
+		// Extract comment_id from query parameters
+		commentIDStr := r.URL.Query().Get("comment_id")
+		if commentIDStr == "" {
+			http.Error(w, "Missing comment_id parameter", http.StatusBadRequest)
+			return
+		}
+
+		// Convert comment_id to an integer
+		commentID, err := strconv.Atoi(commentIDStr)
+		if err != nil {
+			http.Error(w, "Invalid comment_id value", http.StatusBadRequest)
+			return
+		}
+
+		// Query to get likes and dislikes count
+		query := `
+            SELECT 
+                SUM(CASE WHEN reaction_type = 'LIKE' THEN 1 ELSE 0 END) AS likes,
+                SUM(CASE WHEN reaction_type = 'DISLIKE' THEN 1 ELSE 0 END) AS dislikes
+            FROM comment_reactions
+            WHERE comment_id = ?`
+
+		var likes, dislikes int
+		err = db.QueryRow(query, commentID).Scan(&likes, &dislikes)
+		if err != nil {
+			log.Printf("Failed to fetch reactions: %v\n", err)
+			http.Error(w, "Failed to fetch reactions", http.StatusInternalServerError)
+			return
+		}
+
+		// Send response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]int{
+			"comment_id": commentID,
+			"likes":      likes,
+			"dislikes":   dislikes,
+		})
+	}
+}
