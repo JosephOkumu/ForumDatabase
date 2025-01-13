@@ -89,4 +89,53 @@ func AddCommentHandler(db *sql.DB) http.HandlerFunc {
     }
 }
 
+// GetCommentsHandler retrieves all comments for a specific post.
+func GetCommentsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Ensure the method is GET
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 
+		// Parse the post ID from query parameters
+		postIDStr := r.URL.Query().Get("post_id")
+		if postIDStr == "" {
+			http.Error(w, "Missing post_id query parameter", http.StatusBadRequest)
+			return
+		}
+
+		// Convert postID to an integer
+		postID, err := strconv.Atoi(postIDStr)
+		if err != nil {
+			http.Error(w, "Invalid post_id", http.StatusBadRequest)
+			return
+		}
+
+		// Query the database for comments related to the post
+		query := "SELECT id, post_id, user_id, content, created_at FROM comments WHERE post_id = ? ORDER BY created_at ASC"
+		rows, err := db.Query(query, postID)
+		if err != nil {
+			log.Printf("Failed to retrieve comments: %v\n", err)
+			http.Error(w, "Failed to retrieve comments", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		// Parse the results
+		var comments []Comment
+		for rows.Next() {
+			var comment Comment
+			if err := rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Content, &comment.CreatedAt); err != nil {
+				log.Printf("Failed to parse comment: %v\n", err)
+				http.Error(w, "Failed to retrieve comments", http.StatusInternalServerError)
+				return
+			}
+			comments = append(comments, comment)
+		}
+
+		// Return the comments as JSON
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(comments)
+	}
+}
