@@ -24,6 +24,10 @@ func main() {
 	http.HandleFunc("/create-post", handlers.CreatePostHandler(db.DB))
 	http.HandleFunc("/comment", handlers.AddCommentHandler(db.DB))
 	http.HandleFunc("/get-comments", handlers.GetCommentsHandler(db.DB))
+	http.HandleFunc("/add-reaction", handlers.AddReactionHandler(db.DB))
+	http.HandleFunc("/reaction-counts", handlers.GetPostReactionCountsHandler(db.DB))
+	http.HandleFunc("/commentreaction", handlers. AddCommentReactionHandler(db.DB))
+	http.HandleFunc("/commentreactioncounts", handlers.GetCommentReactionCountsHandler(db.DB))
 
 	// Start the server
 	fmt.Println("Server started on :8080")
