@@ -110,7 +110,7 @@ func GetPostsHandler(db *sql.DB) http.HandlerFunc {
 				posts.id, 
 				posts.title, 
 				posts.content, 
-				users.name AS author, 
+				users.username AS author, 
 				posts.created_at
 			FROM 
 				posts
