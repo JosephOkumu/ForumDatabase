@@ -125,11 +125,11 @@ async function handleLogin(event) {
 
         if (response.ok) {
             const data = await response.json();
-            currentUser = data; // Store the entire user data
+            currentUser = { username: data.username }; // Store the username from the backend response
             document.getElementById('loginForm').style.display = 'none';
             alert('Login successful!');
-            loadPosts();
-            updateUIForLoggedInUser();
+            loadPosts(); // Reload posts or any other relevant content
+            updateUIForLoggedInUser(); // Update UI to reflect logged-in state
         } else {
             const errorData = await response.json();
             alert(errorData.error || 'Login failed. Please check your credentials.');
@@ -139,6 +139,25 @@ async function handleLogin(event) {
         alert('An error occurred during login.');
     }
 }
+
+function updateUIForLoggedInUser() {
+    const navLinks = document.querySelector('.nav-links');
+    if (currentUser && currentUser.username) {
+        // User is logged in
+        navLinks.innerHTML = `
+            <span>Welcome, ${currentUser.username}</span>
+            <button class="btn" onclick="showCreatePostForm()">Create Post</button>
+            <button class="btn" onclick="handleLogout()">Logout</button>
+        `;
+    } else {
+        // User is logged out, show Login and Register links styled correctly
+        navLinks.innerHTML = `
+            <a href="/login" class="btn">Login</a>
+            <a href="/register" class="btn">Register</a>
+        `;
+    }
+}
+
 
 async function checkLoginStatus() {
     try {
@@ -152,17 +171,6 @@ async function checkLoginStatus() {
         }
     } catch (error) {
         console.error('Error checking login status:', error);
-    }
-}
-
-function updateUIForLoggedInUser() {
-    const navLinks = document.querySelector('.nav-links');
-    if (currentUser) {
-        navLinks.innerHTML = `
-            <span>Welcome, ${currentUser.username}</span>
-            <button class="btn" onclick="showCreatePostForm()">Create Post</button>
-            <button class="btn" onclick="handleLogout()">Logout</button>
-        `;
     }
 }
 
@@ -392,7 +400,7 @@ async function handleAddComment(event, postId) {
         const response = await fetch('/comment', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ postId, content }),
         });
@@ -410,9 +418,14 @@ async function handleAddComment(event, postId) {
 }
 
 function handleLogout() {
+    // Clear the currentUser data
     currentUser = null;
+    
+    // Update the UI to reflect the logged-out state
     updateUIForLoggedInUser();
-    loadPosts();
+    
+    // Optionally reload the page to reset the entire state
+    location.reload(); // This will refresh the page and reset everything
 }
 
 // Update the DOMContentLoaded event listener
