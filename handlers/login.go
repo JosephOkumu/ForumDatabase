@@ -44,9 +44,9 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 
 		// Query the database for the user
 		var userID int
-		var hashedPassword string
-		query := "SELECT id, password FROM users WHERE email = ?"
-		err = db.QueryRow(query, req.Email).Scan(&userID, &hashedPassword)
+		var hashedPassword, username string
+		query := "SELECT id, password, username FROM users WHERE email = ?"
+		err = db.QueryRow(query, req.Email).Scan(&userID, &hashedPassword, &username)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "Invalid email or password", http.StatusUnauthorized)
@@ -85,8 +85,53 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			HttpOnly: true, // Prevent JavaScript access for security
 		})
 
+		// Respond with a success message and the username
+		response := struct {
+			Message  string `json:"message"`
+			Username string `json:"username"`
+		}{
+			Message:  "Login successful",
+			Username: username,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+
+// LogoutHandler handles user logout requests
+func LogoutHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get the session token from the cookie
+		cookie, err := r.Cookie("session_token")
+		if err != nil {
+			http.Error(w, "Session not found", http.StatusUnauthorized)
+			return
+		}
+
+		// Delete session from the database
+		_, err = db.Exec("DELETE FROM sessions WHERE uuid = ?", cookie.Value)
+		if err != nil {
+			http.Error(w, "Failed to logout", http.StatusInternalServerError)
+			return
+		}
+
+		// Remove the session cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session_token",
+			Value:    "",
+			Expires:  time.Unix(0, 0), // Expire the cookie
+			HttpOnly: true,
+		})
+
 		// Respond with a success message
-		response := LoginResponse{Message: "Login successful"}
+		response := struct {
+			Message string `json:"message"`
+		}{
+			Message: "Logout successful",
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}
