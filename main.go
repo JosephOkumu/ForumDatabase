@@ -43,6 +43,7 @@ func main() {
     // API routes
     http.HandleFunc("/register", handlers.RegisterUserHandler)
     http.HandleFunc("/login", handlers.LoginHandler(db.DB))
+    http.HandleFunc("/logout", handlers.LogoutHandler(db.DB))
     http.HandleFunc("/posts", handlers.GetPostsHandler(db.DB))
     http.HandleFunc("/create-post", handlers.CreatePostHandler(db.DB))
     http.HandleFunc("/comment", handlers.AddCommentHandler(db.DB))
